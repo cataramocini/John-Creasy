@@ -63,6 +63,8 @@ tests/
     ├── test_composite_analyzer.py  # Testes do fallback chain de IA
     ├── test_domain.py              # Testes de entidades e value objects
     ├── test_emergency_notifier.py  # Testes do Dead Man's Switch
+    ├── test_gemini_analyzer.py     # Testes do analisador Gemini
     ├── test_monitor_diario.py      # Testes do fluxo principal de orquestração
+    ├── test_ocr_analyzer.py        # Testes do analisador OCR local
     └── test_telegram_notifier.py   # Testes de formatação de mensagens Telegram
 ```
