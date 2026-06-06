@@ -1,0 +1,131 @@
+"""Notificador via Telegram Bot API."""
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+import structlog
+
+from vgb.application.ports.notifier import (
+    AlertPayload,
+    NotificationPayload,
+    Notifier,
+    SummaryPayload,
+)
+from vgb.infrastructure.config import Settings
+from vgb.infrastructure.http.resilient_client import ResilientHTTPClient
+
+logger = structlog.get_logger()
+
+
+class TelegramNotifier(Notifier):
+    """Envia notificacoes para um chat do Telegram."""
+
+    def __init__(self, client: ResilientHTTPClient, settings: Settings) -> None:
+        self._client = client
+        self._token = settings.telegram_token.get_secret_value()
+        self._chat_id = settings.telegram_chat_id
+
+    async def send(self, payload: NotificationPayload) -> str:
+        message = self._format_occurrence(payload)
+        return await self._dispatch(message)
+
+    async def send_summary(self, payload: SummaryPayload) -> str:
+        message = self._format_summary(payload)
+        return await self._dispatch(message)
+
+    async def send_alert(self, payload: AlertPayload) -> str:
+        message = self._format_alert(payload)
+        return await self._dispatch(message)
+
+    async def _dispatch(self, text: str) -> str:
+        url = f"https://api.telegram.org/bot{self._token}/sendMessage"
+        logger.info("telegram.dispatch", chat_id=self._chat_id)
+
+        response = await self._client.post(
+            url,
+            json={
+                "chat_id": self._chat_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
+        )
+        response.raise_for_status()
+        data = response.json()
+        message_id = str(data.get("result", {}).get("message_id", "unknown"))
+        logger.info("telegram.sent", message_id=message_id)
+        return message_id
+
+    def _format_occurrence(self, payload: NotificationPayload) -> str:
+        ed = payload.edition
+        occs = payload.occurrences
+
+        if not occs:
+            return ""
+
+        occ = occs[0]
+        ts = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M:%S")
+
+        lines = [
+            "⚠️ <b>CARGO DETECTADO</b>",
+            "",
+            f'<a href="{ed.url}">{ed.title}</a>',
+        ]
+
+        if occ.context_snippet:
+            summary = occ.context_snippet.replace("<", "&lt;").replace(">", "&gt;")
+            lines.append(f"\n{summary}")
+
+        lines.append(f"\nTimestamp: {ts}")
+
+        return "\n".join(lines)
+
+    def _format_summary(self, payload: SummaryPayload) -> str:
+        ts = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M:%S")
+        lines = [
+            f"PDFs verificados: <b>{payload.total_links}</b>",
+            "",
+            f"PDFs analisados: <b>{payload.total_new}</b>",
+            "",
+            f"Ocorrencias: <b>{payload.total_found}</b>",
+        ]
+
+        if payload.total_errors:
+            lines.extend(["", f"Erros: <b>{payload.total_errors}</b> ⚠️"])
+
+        lines.extend(["", f"Duracao: <b>{payload.duration_seconds:.1f}s</b>"])
+
+        if payload.total_found == 0:
+            lines.extend(
+                [
+                    "",
+                    "✅ Nenhuma mencao ao nome ou cargo foi encontrada hoje.",
+                ]
+            )
+
+        lines.extend(["", f"Timestamp: {ts}"])
+
+        return "\n".join(lines)
+
+    def _format_alert(self, payload: AlertPayload) -> str:
+        ts = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M:%S")
+        lines = [
+            "🆘 <b>ALERTA CRITICO — VGB FALHOU</b>",
+            "",
+            f"<b>Erro:</b> <code>{payload.error_summary}</code>",
+        ]
+
+        if payload.traceback_snippet:
+            tb = payload.traceback_snippet[:800].replace("<", "&lt;").replace(">", "&gt;")
+            lines.extend(["", f"<b>Traceback:</b>\n<pre>{tb}</pre>"])
+
+        lines.extend(
+            [
+                "",
+                "⚠️ O sistema nao conseguiu completar a execucao. Verifique os logs do GitHub Actions.",
+            ]
+        )
+
+        lines.append(f"\nTimestamp: {ts}")
+
+        return "\n".join(lines)
