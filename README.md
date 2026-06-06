@@ -30,7 +30,7 @@ src/vgb/
     ├── __init__.py
     ├── ai/
     │   ├── __init__.py
-    │   ├── composite_analyzer.py    # Fallback chain
+    │   ├── composite_analyzer.py    # Fallback chain (Gemini -> OpenRouter -> OCR)
     │   ├── gemini_analyzer.py       # Google Gemini 2.5 Flash
     │   ├── openrouter_analyzer.py   # OpenRouter (deepseek-v4-flash:free)
     │   └── ocr_analyzer.py          # PyMuPDF + fuzzy matching
@@ -42,7 +42,7 @@ src/vgb/
     │   └── resilient_client.py      # HTTP client com retry
     ├── notifications/
     │   ├── __init__.py
-    │   ├── telegram_notifier.py     # Notificações normais + resumo
+    │   ├── telegram_notifier.py     # Notificações normais + resumo diário
     │   └── emergency_notifier.py    # Dead Man's Switch
     ├── storage/
     │   ├── __init__.py
