@@ -131,9 +131,10 @@ class GeminiAnalyzer(PDFAnalyzer):
             title="JSON inválido do Gemini",
             line_errors=[
                 {
-                    "loc": ("root",),
-                    "msg": f"Não foi possível parsear: {raw_text[:200]}",
                     "type": "value_error",
+                    "loc": ("root",),
+                    "input": raw_text,
+                    "ctx": {"error": f"Não foi possível parsear: {raw_text[:200]}"},
                 }
             ],
         )
