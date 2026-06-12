@@ -120,7 +120,9 @@ class TestFallbackChain:
             assert result.found is False
             assert result.model_used == "ocr-local"
 
-    async def test_cadeia_completa_falha_silenciosa_ocr_encontra(self, settings: Settings, target: SearchTarget) -> None:
+    async def test_cadeia_completa_falha_silenciosa_ocr_encontra(
+        self, settings: Settings, target: SearchTarget
+    ) -> None:
         """Cenario real do dia 29: Gemini (JSON truncado) -> OpenRouter (404) -> OCR encontra."""
         from vgb.domain.exceptions import AnaliseIndisponivelError
 

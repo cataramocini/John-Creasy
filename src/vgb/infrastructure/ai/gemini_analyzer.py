@@ -129,7 +129,13 @@ class GeminiAnalyzer(PDFAnalyzer):
         # Se nada funcionou, falha para que o fallback seja acionado
         raise ValidationError.from_exception_data(
             title="JSON inválido do Gemini",
-            line_errors=[{"loc": ("root",), "msg": f"Não foi possível parsear: {raw_text[:200]}", "type": "value_error"}],
+            line_errors=[
+                {
+                    "loc": ("root",),
+                    "msg": f"Não foi possível parsear: {raw_text[:200]}",
+                    "type": "value_error",
+                }
+            ],
         )
 
     def _build_prompt(self, target: SearchTarget) -> str:

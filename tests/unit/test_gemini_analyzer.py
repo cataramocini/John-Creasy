@@ -1,8 +1,9 @@
 """Testes unitarios do GeminiAnalyzer."""
 
 import pytest
+from pydantic import ValidationError
 
-from vgb.infrastructure.ai.gemini_analyzer import GeminiAnalyzer, _ResultSchema
+from vgb.infrastructure.ai.gemini_analyzer import GeminiAnalyzer
 
 
 class TestParseResponse:
@@ -27,5 +28,5 @@ class TestParseResponse:
 
     def test_json_invalido_sem_found(self) -> None:
         raw = "não é json"
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             GeminiAnalyzer._parse_response(raw)

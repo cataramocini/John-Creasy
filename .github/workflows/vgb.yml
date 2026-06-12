@@ -61,6 +61,7 @@ jobs:
     needs: [lint, test]
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -101,3 +102,27 @@ jobs:
         with:
           path: vgb.db
           key: vgb-database-${{ github.run_id }}
+
+  notify-ci-failure:
+    name: Notify Telegram on CI failure
+    needs: [lint, test, run]
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send failure alert to Telegram
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.VGB_TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.VGB_TELEGRAM_CHAT_ID }}
+        run: |
+          message="🆘 <b>ALERTA CRITICO — VGB NAO RODOU</b>%0A%0A"
+          message+="O workflow falhou na execucao agendada e o monitoramento nao foi realizado.%0A%0A"
+          message+="<b>Repositorio:</b> ${{ github.repository }}%0A"
+          message+="<b>Branch:</b> ${{ github.ref_name }}%0A"
+          message+="<b>Run:</b> <a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">#${{ github.run_number }}</a>%0A%0A"
+          message+="Verifique os logs do GitHub Actions imediatamente."
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${message}" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true"
