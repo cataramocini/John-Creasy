@@ -1,7 +1,7 @@
 """Caso de uso principal: monitorar o Diario Oficial."""
 
-import traceback
 import time
+import traceback
 from datetime import date
 
 import structlog
