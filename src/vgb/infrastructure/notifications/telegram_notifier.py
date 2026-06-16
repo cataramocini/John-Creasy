@@ -92,7 +92,7 @@ class TelegramNotifier(Notifier):
                 "O monitor nao conseguiu acessar a fonte de PDFs.",
                 f"<b>Erro:</b> <code>{payload.error_summary or 'desconhecido'}</code>",
                 "",
-                f"⏱ {duration}",
+                f"⏱ Tempo de execucao: {duration}",
             ]
             return "\n".join(lines)
 
@@ -101,7 +101,7 @@ class TelegramNotifier(Notifier):
             f"{icon} <b>Resumo Diario - {today}</b>",
             "",
             f"📄 PDFs analisados: <b>{payload.total_new}</b>",
-            f"⏱ {duration}",
+            f"⏱ Tempo de execucao: {duration}",
         ]
 
         if payload.total_found == 0:
