@@ -95,10 +95,11 @@ class TestFormatSummary:
             total_errors=0,
         )
         msg = notifier._format_summary(payload)
+        assert "Resumo Diario" in msg
         assert "PDFs analisados: <b>2</b>" in msg
-        assert "Ocorrencias: <b>1</b>" in msg
         assert "Foram encontradas <b>1</b> ocorrencia(s)" in msg
         assert "Nenhuma mencao" not in msg
+        assert "Ocorrencias:" not in msg
         assert "PDFs verificados" not in msg
 
     def test_sem_ocorrencias(self, settings: Settings) -> None:
@@ -111,7 +112,9 @@ class TestFormatSummary:
             total_errors=0,
         )
         msg = notifier._format_summary(payload)
+        assert "Resumo Diario" in msg
         assert "Nenhuma mencao ao nome ou cargo foi encontrada hoje" in msg
+        assert "Ocorrencias:" not in msg
 
     def test_com_erros(self, settings: Settings) -> None:
         notifier = TelegramNotifier(None, settings)  # type: ignore[arg-type]
@@ -124,10 +127,10 @@ class TestFormatSummary:
             error_summary="TimeoutError: Request timed out",
         )
         msg = notifier._format_summary(payload)
-        assert "ERRO NA EXECUCAO" in msg
+        assert "Resumo Diario" in msg
         assert "TimeoutError: Request timed out" in msg
         assert "PDFs analisados" not in msg
-        assert "Ocorrencias" not in msg
+        assert "Ocorrencias:" not in msg
         assert "Nenhuma mencao" not in msg
 
 

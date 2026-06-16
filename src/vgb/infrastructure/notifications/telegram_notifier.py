@@ -81,45 +81,33 @@ class TelegramNotifier(Notifier):
         return "\n".join(lines)
 
     def _format_summary(self, payload: SummaryPayload) -> str:
-        ts = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M:%S")
+        tz = ZoneInfo("America/Sao_Paulo")
+        today = datetime.now(tz).strftime("%d/%m/%Y")
+        duration = f"{payload.duration_seconds:.1f}s"
 
         if payload.total_errors:
             lines = [
-                "⚠️ <b>ERRO NA EXECUCAO</b>",
+                f"❌ <b>Resumo Diario - {today}</b>",
                 "",
                 "O monitor nao conseguiu acessar a fonte de PDFs.",
                 f"<b>Erro:</b> <code>{payload.error_summary or 'desconhecido'}</code>",
                 "",
-                f"Duracao: <b>{payload.duration_seconds:.1f}s</b>",
-                "",
-                f"Timestamp: {ts}",
+                f"⏱ {duration}",
             ]
             return "\n".join(lines)
 
+        icon = "🚨" if payload.total_found > 0 else "✅"
         lines = [
-            f"PDFs analisados: <b>{payload.total_new}</b>",
+            f"{icon} <b>Resumo Diario - {today}</b>",
             "",
-            f"Ocorrencias: <b>{payload.total_found}</b>",
-            "",
-            f"Duracao: <b>{payload.duration_seconds:.1f}s</b>",
+            f"📄 PDFs analisados: <b>{payload.total_new}</b>",
+            f"⏱ {duration}",
         ]
 
         if payload.total_found == 0:
-            lines.extend(
-                [
-                    "",
-                    "✅ Nenhuma mencao ao nome ou cargo foi encontrada hoje.",
-                ]
-            )
+            lines.extend(["", "Nenhuma mencao ao nome ou cargo foi encontrada hoje."])
         else:
-            lines.extend(
-                [
-                    "",
-                    f"⚠️ Foram encontradas <b>{payload.total_found}</b> ocorrencia(s).",
-                ]
-            )
-
-        lines.extend(["", f"Timestamp: {ts}"])
+            lines.extend(["", f"Foram encontradas <b>{payload.total_found}</b> ocorrencia(s)."])
 
         return "\n".join(lines)
 
