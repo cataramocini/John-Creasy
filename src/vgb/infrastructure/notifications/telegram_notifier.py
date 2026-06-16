@@ -82,24 +82,40 @@ class TelegramNotifier(Notifier):
 
     def _format_summary(self, payload: SummaryPayload) -> str:
         ts = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d %H:%M:%S")
+
+        if payload.total_errors:
+            lines = [
+                "⚠️ <b>ERRO NA EXECUCAO</b>",
+                "",
+                "O monitor nao conseguiu acessar a fonte de PDFs.",
+                f"<b>Erro:</b> <code>{payload.error_summary or 'desconhecido'}</code>",
+                "",
+                f"Duracao: <b>{payload.duration_seconds:.1f}s</b>",
+                "",
+                f"Timestamp: {ts}",
+            ]
+            return "\n".join(lines)
+
         lines = [
-            f"PDFs verificados: <b>{payload.total_links}</b>",
-            "",
             f"PDFs analisados: <b>{payload.total_new}</b>",
             "",
             f"Ocorrencias: <b>{payload.total_found}</b>",
+            "",
+            f"Duracao: <b>{payload.duration_seconds:.1f}s</b>",
         ]
-
-        if payload.total_errors:
-            lines.extend(["", f"Erros: <b>{payload.total_errors}</b> ⚠️"])
-
-        lines.extend(["", f"Duracao: <b>{payload.duration_seconds:.1f}s</b>"])
 
         if payload.total_found == 0:
             lines.extend(
                 [
                     "",
                     "✅ Nenhuma mencao ao nome ou cargo foi encontrada hoje.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "",
+                    f"⚠️ Foram encontradas <b>{payload.total_found}</b> ocorrencia(s).",
                 ]
             )
 

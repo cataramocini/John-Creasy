@@ -73,9 +73,11 @@ class MonitorDiarioUseCase:
             "errors": 0,
         }
 
+        source_error = ""
         try:
             links = await self._source.fetch_links(limit=self._settings.max_pdfs_per_run)
         except Exception as exc:
+            source_error = f"{type(exc).__name__}: {str(exc) or repr(exc)}"
             logger.error(
                 "monitor.source_failed",
                 error_type=type(exc).__name__,
@@ -84,7 +86,7 @@ class MonitorDiarioUseCase:
             )
             stats["errors"] += 1
             duration = time.monotonic() - start_time
-            await self._send_summary(run_id, today, stats, duration)
+            await self._send_summary(run_id, today, stats, duration, error_summary=source_error)
             return stats
 
         stats["checked"] = len(links)
@@ -117,7 +119,14 @@ class MonitorDiarioUseCase:
             await self._send_summary(run_id, today, stats, duration)
         return stats
 
-    async def _send_summary(self, run_id: str, today: date, stats: dict[str, int], duration: float = 0.0) -> None:
+    async def _send_summary(
+        self,
+        run_id: str,
+        today: date,
+        stats: dict[str, int],
+        duration: float = 0.0,
+        error_summary: str = "",
+    ) -> None:
         try:
             payload = SummaryPayload(
                 run_date=today,
@@ -126,6 +135,7 @@ class MonitorDiarioUseCase:
                 total_found=stats["found"],
                 total_errors=stats["errors"],
                 duration_seconds=duration,
+                error_summary=error_summary,
             )
             await self._notifier.send_summary(payload)
             logger.info("monitor.summary_sent", run_id=run_id)

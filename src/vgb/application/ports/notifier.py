@@ -26,6 +26,7 @@ class SummaryPayload:
     total_found: int
     total_errors: int
     duration_seconds: float = 0.0
+    error_summary: str = ""
 
 
 @dataclass(frozen=True, slots=True)
