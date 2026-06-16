@@ -56,7 +56,7 @@ async def _run() -> int:
         db = Database(str(settings.database_url))
         await db.create_tables()
 
-        http_client = ResilientHTTPClient()
+        http_client = ResilientHTTPClient(timeout=settings.http_timeout)
 
         source = WebDocumentSource(http_client, settings)
         analyzer = CompositeAnalyzer(settings)

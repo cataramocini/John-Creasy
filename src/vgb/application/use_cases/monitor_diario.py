@@ -1,5 +1,6 @@
 """Caso de uso principal: monitorar o Diario Oficial."""
 
+import traceback
 import time
 from datetime import date
 
@@ -75,7 +76,12 @@ class MonitorDiarioUseCase:
         try:
             links = await self._source.fetch_links(limit=self._settings.max_pdfs_per_run)
         except Exception as exc:
-            logger.error("monitor.source_failed", error=str(exc))
+            logger.error(
+                "monitor.source_failed",
+                error_type=type(exc).__name__,
+                error_msg=str(exc) or repr(exc),
+                traceback=traceback.format_exc(),
+            )
             stats["errors"] += 1
             duration = time.monotonic() - start_time
             await self._send_summary(run_id, today, stats, duration)

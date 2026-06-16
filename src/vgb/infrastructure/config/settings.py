@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Concorrencia
     http_workers: int = Field(default=4, ge=1, le=16)
 
+    # HTTP: timeout total da requisicao (connect + read)
+    http_timeout: float = Field(default=60.0, ge=5.0, le=300.0)
+
     # Banco de dados
     database_url: str = Field(default="sqlite+aiosqlite:///vgb.db")
 

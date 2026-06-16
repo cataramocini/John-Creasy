@@ -31,13 +31,20 @@ class WebDocumentSource(DocumentSource):
         logger.info("source.fetching", url=url)
 
         response = await self._client.get(url)
+        logger.info(
+            "source.response",
+            status=response.status_code,
+            content_length=len(response.content),
+            content_type=response.headers.get("content-type"),
+        )
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
+        anchors = soup.find_all("a", href=True)
         links: list[SourceLink] = []
         seen = set()
 
-        for anchor in soup.find_all("a", href=True):
+        for anchor in anchors:
             href = anchor["href"]
             if ".pdf" not in href.lower():
                 continue
@@ -52,5 +59,5 @@ class WebDocumentSource(DocumentSource):
             title = anchor.get_text(strip=True) or "Diario Oficial"
             links.append(SourceLink(title=title, url=full_url))
 
-        logger.info("source.fetched", count=len(links))
+        logger.info("source.fetched", anchors_total=len(anchors), pdf_links=len(links))
         return links
