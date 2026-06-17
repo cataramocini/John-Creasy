@@ -3,6 +3,7 @@
 import time
 import traceback
 from datetime import date
+from typing import Any
 
 import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -166,7 +167,7 @@ class MonitorDiarioUseCase:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,
     )
-    async def _process_link(self, link: SourceLink) -> dict[str, bool]:
+    async def _process_link(self, link: SourceLink) -> dict[str, Any]:
         url = link.url
         title = link.title
 
