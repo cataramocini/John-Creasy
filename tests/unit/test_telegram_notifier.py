@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 
-from vgb.application.ports.notifier import AlertPayload, NotificationPayload, SummaryPayload
+from vgb.application.ports.notifier import AlertPayload, NotificationPayload, SummaryOccurrence, SummaryPayload
 from vgb.domain.entities import Edition
 from vgb.domain.enums import OccurrenceType
 from vgb.domain.value_objects import HashSHA256
@@ -85,7 +85,7 @@ class TestFormatOccurrence:
 
 
 class TestFormatSummary:
-    def test_com_ocorrencias(self, settings: Settings) -> None:
+    def test_com_ocorrencia_singular(self, settings: Settings) -> None:
         notifier = TelegramNotifier(None, settings)  # type: ignore[arg-type]
         payload = SummaryPayload(
             run_date=date(2024, 1, 15),
@@ -93,11 +93,19 @@ class TestFormatSummary:
             total_new=2,
             total_found=1,
             total_errors=0,
+            occurrences=[
+                SummaryOccurrence(
+                    edition_title="Edicao 3973",
+                    edition_url="https://exemplo.gov.br/do.pdf",
+                    context_snippet="NOMEIA MARIA",
+                )
+            ],
         )
         msg = notifier._format_summary(payload)
         assert "Resumo Diario" in msg
         assert "PDFs analisados: <b>2</b>" in msg
-        assert "Foram encontradas <b>1</b> ocorrencia(s)" in msg
+        assert "Foi encontrada <b>1</b> ocorrencia" in msg
+        assert "NOMEIA MARIA" in msg
         assert "Nenhuma mencao" not in msg
         assert "Ocorrencias:" not in msg
         assert "PDFs verificados" not in msg
@@ -115,6 +123,32 @@ class TestFormatSummary:
         assert "Resumo Diario" in msg
         assert "Nenhuma mencao ao nome ou cargo foi encontrada hoje" in msg
         assert "Ocorrencias:" not in msg
+
+    def test_com_ocorrencia_plural(self, settings: Settings) -> None:
+        notifier = TelegramNotifier(None, settings)  # type: ignore[arg-type]
+        payload = SummaryPayload(
+            run_date=date(2024, 1, 15),
+            total_links=3,
+            total_new=2,
+            total_found=2,
+            total_errors=0,
+            occurrences=[
+                SummaryOccurrence(
+                    edition_title="Edicao 3973",
+                    edition_url="https://exemplo.gov.br/do1.pdf",
+                    context_snippet="NOMEIA MARIA",
+                ),
+                SummaryOccurrence(
+                    edition_title="Edicao 3974",
+                    edition_url="https://exemplo.gov.br/do2.pdf",
+                    context_snippet="NOMEIA JOAO",
+                ),
+            ],
+        )
+        msg = notifier._format_summary(payload)
+        assert "Foram encontradas <b>2</b> ocorrencias" in msg
+        assert "NOMEIA MARIA" in msg
+        assert "NOMEIA JOAO" in msg
 
     def test_com_erros(self, settings: Settings) -> None:
         notifier = TelegramNotifier(None, settings)  # type: ignore[arg-type]

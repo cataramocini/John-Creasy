@@ -1,7 +1,7 @@
 """Porta para envio de notificacoes."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from vgb.domain.entities import Edition, Occurrence
@@ -17,6 +17,15 @@ class NotificationPayload:
 
 
 @dataclass(frozen=True, slots=True)
+class SummaryOccurrence:
+    """Dados enxutos de uma ocorrencia para o resumo diario."""
+
+    edition_title: str
+    edition_url: str
+    context_snippet: str
+
+
+@dataclass(frozen=True, slots=True)
 class SummaryPayload:
     """Dados para relatorio diario de resumo."""
 
@@ -27,6 +36,7 @@ class SummaryPayload:
     total_errors: int
     duration_seconds: float = 0.0
     error_summary: str = ""
+    occurrences: list[SummaryOccurrence] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)

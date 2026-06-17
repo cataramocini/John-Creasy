@@ -106,8 +106,23 @@ class TelegramNotifier(Notifier):
 
         if payload.total_found == 0:
             lines.extend(["", "Nenhuma mencao ao nome ou cargo foi encontrada hoje."])
-        else:
-            lines.extend(["", f"Foram encontradas <b>{payload.total_found}</b> ocorrencia(s)."])
+            return "\n".join(lines)
+
+        found_label = "Foi encontrada" if payload.total_found == 1 else "Foram encontradas"
+        occ_label = "ocorrencia" if payload.total_found == 1 else "ocorrencias"
+        lines.extend(["", f"{found_label} <b>{payload.total_found}</b> {occ_label}:"])
+
+        for occ in payload.occurrences:
+            context = occ.context_snippet.replace("<", "&lt;").replace(">", "&gt;")
+            lines.extend(
+                [
+                    "",
+                    f"📄 <b>{occ.edition_title}</b>",
+                    f'<a href="{occ.edition_url}">{occ.edition_url}</a>',
+                ]
+            )
+            if context:
+                lines.append(f"\n{context}")
 
         return "\n".join(lines)
 

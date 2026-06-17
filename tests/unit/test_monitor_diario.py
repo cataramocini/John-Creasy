@@ -79,8 +79,14 @@ class TestExecute:
         assert stats["new"] == 1
         assert stats["found"] == 1
         assert stats["notified"] == 1
-        use_case._notifier.send.assert_awaited_once()
+        use_case._notifier.send.assert_not_called()
         use_case._notifier.send_summary.assert_awaited_once()
+
+        payload = use_case._notifier.send_summary.await_args.args[0]
+        assert payload.total_found == 1
+        assert len(payload.occurrences) == 1
+        assert payload.occurrences[0].edition_title == "DO 01"
+        assert payload.occurrences[0].context_snippet == "NOMEIA MARIA"
 
     async def test_fluxo_sem_ocorrencia(self, use_case: MonitorDiarioUseCase) -> None:
         use_case._source.fetch_links.return_value = [SourceLink(title="DO 01", url="https://exemplo.gov.br/do.pdf")]

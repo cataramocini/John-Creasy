@@ -8,7 +8,7 @@ import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from vgb.application.ports.ai_analyzer import PDFAnalyzer
-from vgb.application.ports.notifier import Notifier, SummaryPayload
+from vgb.application.ports.notifier import Notifier, SummaryOccurrence, SummaryPayload
 from vgb.application.ports.repository import AnalysisRepository, EditionRepository
 from vgb.application.ports.source import DocumentSource, SourceLink
 from vgb.domain.entities import Analysis, Edition, Occurrence, SearchTarget
@@ -98,6 +98,7 @@ class MonitorDiarioUseCase:
         links_to_process = [link for link in links if link.url not in processed_urls]
         logger.info("monitor.links_new", total=len(links), new=len(links_to_process), skipped=len(processed_urls))
 
+        summary_occurrences: list[SummaryOccurrence] = []
         for link in links_to_process[: self._settings.max_pdfs_per_run]:
             try:
                 result = await self._process_link(link)
@@ -108,6 +109,14 @@ class MonitorDiarioUseCase:
                     stats["found"] += 1
                 if result.get("notified"):
                     stats["notified"] += 1
+                for occ in result.get("occurrences", []):
+                    summary_occurrences.append(
+                        SummaryOccurrence(
+                            edition_title=link.title,
+                            edition_url=link.url,
+                            context_snippet=occ.context_snippet,
+                        )
+                    )
             except Exception as exc:
                 stats["errors"] += 1
                 logger.error("monitor.link_failed", url=link.url, error=str(exc))
@@ -116,7 +125,14 @@ class MonitorDiarioUseCase:
         logger.info("monitor.done", stats=stats, duration_seconds=duration)
         # Só envia resumo se houver algo relevante para reportar
         if stats["new"] > 0 or stats["errors"] > 0 or stats["notified"] > 0:
-            await self._send_summary(run_id, today, stats, duration)
+            await self._send_summary(
+                run_id,
+                today,
+                stats,
+                duration,
+                error_summary=source_error,
+                occurrences=summary_occurrences,
+            )
         return stats
 
     async def _send_summary(
@@ -126,6 +142,7 @@ class MonitorDiarioUseCase:
         stats: dict[str, int],
         duration: float = 0.0,
         error_summary: str = "",
+        occurrences: list[SummaryOccurrence] | None = None,
     ) -> None:
         try:
             payload = SummaryPayload(
@@ -136,6 +153,7 @@ class MonitorDiarioUseCase:
                 total_errors=stats["errors"],
                 duration_seconds=duration,
                 error_summary=error_summary,
+                occurrences=occurrences or [],
             )
             await self._notifier.send_summary(payload)
             logger.info("monitor.summary_sent", run_id=run_id)
@@ -217,23 +235,14 @@ class MonitorDiarioUseCase:
         edition.mark_processed()
         await self._edition_repo.save(edition)
 
-        # Notifica se encontrou algo significativo
-        notified = False
+        # Ocorrencias significativas vao para o resumo diario unificado
         significant = [o for o in analysis.occurrences if o.is_significant()]
         if significant:
-            from vgb.application.ports.notifier import NotificationPayload
-
-            payload = NotificationPayload(
-                edition=edition,
-                occurrences=significant,
-                message_html="",
-            )
-            await self._notifier.send(payload)
-            notified = True
-            logger.info("monitor.notify.sent", url=url, occurrences=len(significant))
+            logger.info("monitor.found", url=url, occurrences=len(significant))
 
         return {
             "is_new": True,
             "found": analysis.has_occurrences(),
-            "notified": notified,
+            "notified": bool(significant),
+            "occurrences": significant,
         }
